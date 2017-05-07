@@ -1,0 +1,282 @@
+---
+title: "toronto vs. IL"
+author: "SB"
+date: "Wednesday, February 04, 2015"
+output: pdf_document
+---
+
+# graphing IL from Toronto example
+
+## may 7, 2017
+
+modify the toronto example to use the 
+Israeli data
+## load setup code, simulate thesis state 
+```{r setup}
+library(RColorBrewer)
+library(maptools)
+library(ggmap)
+library(rgeos)
+library(censusFunctions) 
+
+setwd("/Volumes/Bmac/febThesis/index")
+ilmap <- importData("savedGoogleMap")
+# Read the neighborhood shapefile data and plot
+## 
+## shpfilex <- "NEIGHBORHOODS_WGS84_2.shp"
+## sh <- rgdal::readOGR(shpfile)
+## plot(sh)
+
+# Add demographic data
+# The neighbourhood ID is a string - change it to a integer
+## sh@data$AREA_S_CD <- as.numeric(sh@data$AREA_S_CD)
+
+## # Read in the demographic data and merge on Neighbourhood Id
+## demo <- read.csv(file="WB-Demographics.csv", header=T)
+## sh2 <- merge(sh, demo, by.x='AREA_S_CD', by.y='Neighbourhood.Id')
+ggmap(ilmap)
+```
+now, what does this col=cols line do?
+
+```{r second, eval = FALSE}
+
+# Set the palette
+# creates 128 shades between white and red
+#p <- colorRampPalette(c("white", "red"))(128)
+#palette(p)
+
+# Scale the total population to the palette
+#pop <- sh2@data$Total.Population
+#cols <- (pop - min(pop))/diff(range(pop))*127+1
+# what is this cols variable?
+# View(cols) #don't call view in ess, only Rstudio'
+#pop  # city-section populations range from 7k to 50k
+#cols[1]
+#range(cols)
+## pop[12]
+## # what column names are there?
+## names(sh2@data)
+## ```
+## What is the population of the 12th area?
+## ```{r pop1}
+## #ggmap(ilmap)
+## pop[12]
+## ```
+## What is the name of that area?
+## ```{r nme}
+## sh2@data$AREA_NAME[12]
+## ```
+## Does this area have any aliases?
+## ```{r rco}
+## sh2@data$Neighbourhood[12]
+```
+
+### Can you say any of that with inline code?
+The population of region `r sh2@data$AREA_NAME[12]` aka
+`r sh2@data$Neighbourhood[12]` was `r pop[12]` in 1998.
+By 2010 it had fallen to `r pop[22]`.
+This paragraph is interesting because, blah.
+ 
+```{r help}
+chngDir("index")
+polygon <- sf::st_read("../includes/ISR_adm/ISR_adm1.shp")
+## gives "MULTIPOLYGON" format
+coords <- readOGR("../includes/ISR_adm/ISR_adm1.shp")
+## also works
+coords  ## great, gives lat/long
+## but how to get just the points for the golan?
+## TODO shapGolan <- polygon[]
+states <- readOGR("../includes/ISR_adm/ISR_adm1.shp", "ISR_adm1")
+Golan <- subset(states, NAME_1 == "Golan")
+## check
+## based on http://stackoverflow.com/questions/25985395/how-to-subset-a-shapefile
+dim(states)
+dim(Golan) 
+Golan  ## the coordinates are one of the things shown,
+## how can I access just that piece?
+typeof(Golan)
+## access s4 slots:
+# http://stackoverflow.com/questions/13099780/how-to-access-the-slots-of-an-s4-object-in-r
+
+# Golan@coords  # wrong
+# coords@Golan  # wrong
+slotNames(Golan)
+# coords@polygons(Golan)  # Error: attempt to apply non-function
+slot(Golan, coords)
+str(Golan)
+gpoly <- Golan@polygons    ## works
+Golan@polygons[1] ## works
+typeof(gpoly)
+str(gpoly)
+str(gpoly[[1]])
+
+insidepoly <-gpoly[[1]]
+insidepoly@Polygons[1]   ## useful, closer
+deepinside <- insidepoly@Polygons[[1]]
+str(deepinside)
+deepwhy    <- deepinside@coords[,1]  ## see docs, is y lat or long?
+deepex     <- deepinside@coords[,2]
+golan_lat  <- deepwhy
+golan_long <- deepex
+
+golanframe <- as.data.frame(cbind(long = deepwhy, lat = deepex))
+#golanframe
+## create columns in same order as choroplethrAdmin1 package
+golanframe$admin  <- "israel"
+golanframe$region <- "golan"
+golanframe$group <- "1884.1"
+alist <- seq(1, 166, 1)
+numberofjeru <- 272989
+blist <- alist + numberofjeru
+blist
+golanframe$order <- blist
+golanframe$hole  <- FALSE
+golanframe$piece <- 1
+golanframe$id    <- 1878
+#golanframe   # look!  success
+
+```
+## Great! 
+Now that I have extracted the shape of the Golan from a reputable source,
+I still need one more region, 
+the Haifa suburbs or Qrayot Haifa.
+
+This shape I had to draw by hand by looking at google maps and using the QGIS software.
+Here I extract these points using the methodology derived above.
+
+```{r extractQrayot}
+
+
+
+
+## combine with package version
+
+
+
+#coordinates(gpoly@coords)
+
+v <- extract(gpoly, small = TRUE)
+
+
+
+points <- fortify(polygon)
+ilpoints <- fortify(polygon, region = "NAME_1")
+levels(polygon$NAME_1)
+avgage <- c(10, 11, 15, 20.3, 31, 11, 4)
+avgage[3]
+# fake data, range 0-40
+frame_il <- data.frame( region = levels(polygon$NAME_1), age = as.numeric(unlist(avgage)), stringsAsFactors = FALSE)
+colnames(frame_il) 
+
+frame_il[[2]]
+typeof(frame_il[[2]])
+# make palette with 40 levels
+pal <-  colorRampPalette(brewer.pal(11, "Spectral"))(40)
+# no place will be dark red, my data only goes to 31
+palette(rev(p))
+## scale
+age <- frame_il$age 
+# this gives an error, age is still not numeric
+range(age)
+age
+
+colours <- (age - min(age)) / diff(range(age)) * 40
+colours
+## merge - currently I only have the region names, need the shape-polygons
+## can these be merged?
+ilpoints$NAME_1
+## is the same as?
+frame_il$region <- as.factor(frame_il$region)
+
+frame_ils <- merge(frame_il, ilpoints,
+                   by.x = 'region',
+                   by.y = 'NAME_1')
+
+## try other package
+install_github("arilamstein/choroplethr")
+install_github("choroplethrAdmin1", "arilamstein")
+library(choroplethr)
+library(choroplethrAdmin1)
+## help page http://www.arilamstein.com/open-source/choroplethr/creating-administrative-level-1-maps/
+?df_japan_census
+head(df_japan_census)
+## is the country available?
+#get_admin1_regions("japan")
+#get_admin1_regions("china")
+get_admin1_regions("israel")
+```
+## those are the regions available to map, 
+Only has 6 regions, seems to lack Golan and Krayot Haifa regions I need.
+## what region do i still need to add?
+
+
+```{r moerle}
+admin1_map("japan")
+admin1_map("china")
+admin1_map("israel")
+
+# grab two columns
+#japs <-read.table(text = "", ...)
+## japs <- data.frame(region = character(),
+##                   value  = numeric(),
+##                    stringsAsFactors = FALSE)
+df_japan_census$value <- df_japan_census$pop_2010
+## plot
+admin1_choropleth(country.name = "japan",
+                  df = df_japan_census,
+                  title = "2010 Japan Population Estimates",
+                  num_colors = 1)
+```
+zoom in on a region 
+```{r exmg}
+kansai = c("mie", "nara", "wakayama", "kyoto", "osaka", "hyogo", "shiga")
+admin1_choropleth(country.name = "japan",
+                  df           = df_japan_census,
+                  title        = "2010 Japan Population Estimates - Kansai Region",
+                  legend       = "Population",
+                  num_colors   = 1,
+                  zoom         = kansai)
+```
+but surely this doesn't work for israel?
+```{r suly}
+?df_israel
+#plot(frame_ils, col <- colours )
+
+# Scale the total population to the palette
+pop <- sh2@data$Total.Population
+cols <- (pop - min(pop))/diff(range(pop))*127+1
+
+## stuff
+demo
+typeof(demo)
+typeof(frame_il)
+```
+
+
+
+```{r more}
+plot(sh, col = cols)
+
+#RColorBrewer, spectral
+p <- colorRampPalette(brewer.pal(11, 'Spectral'))(128)
+palette(rev(p))
+plot(sh2, col = cols)
+
+#GGPLOT 
+points <- fortify(sh, region = 'AREA_S_CD')
+
+# Plot the neighborhoods
+toronto <- qmap("Toronto, Ontario", zoom = 10)
+toronto + geom_polygon(aes(x=long,y=lat, group=group, alpha=0.25), data=points, fill='white') + geom_polygon(aes(x=long,y=lat, group=group), data=points, color='black', fill=NA)
+
+# merge the shapefile data with the social housing data, using the neighborhood ID
+points2 <- merge(points, demo, by.x='id', by.y='Neighbourhood.Id', all.x=TRUE)
+
+# Plot
+toronto + geom_polygon(aes(x=long,y=lat, group=group, fill=Total.Population), data=points2, color='black') + 
+  scale_fill_gradient(low='white', high='red')
+
+# Spectral plot
+toronto + geom_polygon(aes(x=long,y=lat, group=group, fill=Total.Population), data=points2, color='black') + 
+  scale_fill_distiller(palette='Spectral') + scale_alpha(range=c(0.5,0.5))
+```

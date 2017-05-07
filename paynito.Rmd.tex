@@ -1,0 +1,104 @@
+---
+title: "toronto vs. IL"
+author: "SB"
+date: "Wednesday, February 04, 2015"
+output: pdf_document
+---
+
+# graphing IL from Toronto example
+
+## may 7, 2017
+
+modify the toronto example to use the 
+Israeli data
+## load setup code, simulate thesis state 
+```{r setup}
+library(RColorBrewer)
+library(maptools)
+library(ggmap)
+library(rgeos)
+library(censusFunctions) 
+importData("savedGoogleMap")
+# Read the neighborhood shapefile data and plot
+setwd("~/scratch/toronto_neighbourhoods")
+shpfile <- "NEIGHBORHOODS_WGS84_2.shp"
+sh <- rgdal::readOGR(shpfile)
+plot(sh)
+
+# Add demographic data
+# The neighbourhood ID is a string - change it to a integer
+sh@data$AREA_S_CD <- as.numeric(sh@data$AREA_S_CD)
+
+# Read in the demographic data and merge on Neighbourhood Id
+demo <- read.csv(file="WB-Demographics.csv", header=T)
+sh2 <- merge(sh, demo, by.x='AREA_S_CD', by.y='Neighbourhood.Id')
+
+
+```
+now, what does this col=cols line do?
+
+
+```{r second}
+
+
+# Set the palette
+# creates 128 shades between white and red
+p <- colorRampPalette(c("white", "red"))(128)
+palette(p)
+
+# Scale the total population to the palette
+pop <- sh2@data$Total.Population
+cols <- (pop - min(pop))/diff(range(pop))*127+1
+# what is this cols variable?
+# View(cols) #don't call view in ess, only Rstudio'
+pop  # city-section populations range from 7k to 50k
+cols[1]
+range(cols)
+pop[12]
+# what column names are there?
+names(sh2@data)
+```
+What is the population of the 12th area?
+```{r pop1}
+pop[12]
+```
+What is the name of that area?
+```{r nme}
+sh2@data$AREA_NAME[12]
+```
+Does this area have any aliases?
+```{r rco}
+sh2@data$Neighbourhood[12]
+```
+### Can you say any of that with inline code?
+The population of region `sh2@data$AREA_NAME[12]` aka
+`sh2@data$Neighbourhood[12]` was `pop[12]` in 1998.
+By 2010 it had grown to `pop[22]`.
+This paragraph is interesting because, blah.
+
+```{r more}
+plot(sh, col = cols)
+
+#RColorBrewer, spectral
+p <- colorRampPalette(brewer.pal(11, 'Spectral'))(128)
+palette(rev(p))
+plot(sh2, col = cols)
+
+#GGPLOT 
+points <- fortify(sh, region = 'AREA_S_CD')
+
+# Plot the neighborhoods
+toronto <- qmap("Toronto, Ontario", zoom = 10)
+toronto + geom_polygon(aes(x=long,y=lat, group=group, alpha=0.25), data=points, fill='white') + geom_polygon(aes(x=long,y=lat, group=group), data=points, color='black', fill=NA)
+
+# merge the shapefile data with the social housing data, using the neighborhood ID
+points2 <- merge(points, demo, by.x='id', by.y='Neighbourhood.Id', all.x=TRUE)
+
+# Plot
+toronto + geom_polygon(aes(x=long,y=lat, group=group, fill=Total.Population), data=points2, color='black') + 
+  scale_fill_gradient(low='white', high='red')
+
+# Spectral plot
+toronto + geom_polygon(aes(x=long,y=lat, group=group, fill=Total.Population), data=points2, color='black') + 
+  scale_fill_distiller(palette='Spectral') + scale_alpha(range=c(0.5,0.5))
+```
