@@ -1,0 +1,20 @@
+# golan map
+
+this began as an extension of:
+
+### toronto_neighbourhoods
+Chloropleths of Toronto Neighbourhood populations using R
+
+Backlink to blog post: http://www.everydayanalytics.ca/2016/03/plotting-choropleths-from-shapefiles-in-R.html
+
+Data from Toronto Open data: http://www.toronto.ca/open
+
+## but, I switched packages from that version to:
+
+### choroplethrAdmin1
+
+this package looked promising, but did not allow the import of one's own shape files.
+
+#### thus began
+
+an odyssey to deconstruct the secrective proprietary format and add new shapes
